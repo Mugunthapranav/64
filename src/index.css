@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap');
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  /* Prevent page-level scrollbars */
+  background-color: #000;
+  color: #fff;
+  font-family: sans-serif;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #080808 0%, #000 100%);
+}
+
+/* Base Desktop Layout */
+.main-content {
+  margin-left: 0;
+  /* Removing fixed margins, let Flexbox handle it */
+}
+
+@media (max-width: 800px) {
+  .app-body {
+    flex-direction: column;
+    overflow: hidden;
+    height: calc(100vh - 60px);
+    /* 60px is Navbar height */
+  }
+
+  .main-content {
+    order: 1;
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .sidebar,
+  .engine-sidebar {
+    order: 2;
+    width: 100%;
+    margin: 0;
+    flex-shrink: 0;
+  }
+}

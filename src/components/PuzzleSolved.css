@@ -1,0 +1,141 @@
+.puzzle-solved-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+/* Modal Variant (Mobile) */
+.puzzle-solved-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%;
+    max-width: 320px;
+    background: rgb(15, 15, 15);
+    backdrop-filter: blur(40px) saturate(150%);
+    -webkit-backdrop-filter: blur(40px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    padding: 40px 32px;
+    z-index: 2000;
+    box-shadow: 0 40px 100px rgba(56, 56, 56, 0.8), inset 0 0 40px rgba(255, 255, 255, 0.02);
+    animation: solvedEntrance 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* Sidebar Variant (Desktop) */
+.puzzle-solved-sidebar {
+    width: 100%;
+    padding: 24px;
+    background: rgb(0, 0, 0);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    animation: fadeIn 0.8s ease forwards;
+}
+
+@keyframes solvedEntrance {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.solved-badge {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    color: #aaa;
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+
+.star-rating {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.star-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.star-icon.filled {
+    color: #fff;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+.star-icon.half {
+    background: linear-gradient(90deg, #fff 50%, #444 50%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.star-icon.empty {
+    color: #444;
+}
+
+.solved-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.stats-label {
+    font-size: 0.85rem;
+    color: #fff;
+    font-weight: 500;
+}
+
+.hints-text {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.btn-next-large {
+    width: 100%;
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+.btn-next-large:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.btn-next-large:active {
+    transform: translateY(1px);
+}

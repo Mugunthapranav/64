@@ -1,0 +1,74 @@
+.sidebar {
+    width: 300px;
+    height: calc(100% - 48px);
+    margin-left: 20px;
+    background: rgba(15, 15, 15, 0.6);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    flex-shrink: 0;
+    z-index: 1001;
+    box-shadow: 0 20px 50px rgba(192, 192, 192, 0.142);
+}
+
+.sidebar-header {
+    padding: 32px 32px 20px;
+    flex-shrink: 0;
+}
+
+.sidebar-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.sidebar-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #ffffff;
+}
+
+.sidebar-content {
+    padding: 0 22px 22px;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.sidebar-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* Typography is now handled by TopInstructions.css */
+
+.sidebar-footer {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Redundant styles removed as they are now in PuzzleControls.css */
+
+.desktop-only {
+    display: flex;
+}
+
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 800px) {
+    .desktop-only {
+        display: none;
+    }
+
+    .mobile-only {
+        display: block;
+    }
+}

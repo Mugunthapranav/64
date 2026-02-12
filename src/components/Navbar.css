@@ -1,0 +1,107 @@
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background: rgba(10, 10, 10, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    height: 60px;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: calc(100% - 40px);
+    box-shadow: 20px 10px 80px rgba(192, 192, 192, 0.157);
+    margin: 20px;
+    border-radius: 20px;
+}
+
+.navbar-logo {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    cursor: default;
+}
+
+.navbar-btn {
+    position: relative;
+    /* Essential for positioning the glow */
+    background: #1a1a1a;
+    /* Must be solid or dark to hide the center of the glow */
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 10px;
+    border: none;
+    /* Remove the old border */
+    overflow: hidden;
+    /* Clips the rotating glow to the button shape */
+    display: inline-block;
+    z-index: 1;
+}
+
+/* The Glowing Flow Element */
+.navbar-btn::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    /* This creates the 'beam' of light */
+    background: conic-gradient(transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent 30%);
+    animation: rotate 3s linear infinite;
+    opacity: 0;
+    /* Hidden by default */
+    transition: opacity 0.3s;
+    z-index: -2;
+}
+
+/* Inner cover to make the border look thin */
+.navbar-btn::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    /* This defines the border thickness */
+    background: #1a1a1a;
+    /* Match your button background */
+    border-radius: 7px;
+    /* Slightly smaller than parent radius */
+    z-index: -1;
+}
+
+.navbar-btn:hover::before {
+    opacity: 1;
+    /* Show the flow on hover */
+}
+
+.navbar-btn:hover {
+    transform: translateY(-1px);
+    transition: 0.1s;
+}
+
+/* The movement animation */
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.navbar-btn:active {
+    transform: translateY(0);
+}

@@ -1,0 +1,239 @@
+.chess-board-outer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: min(600px, 100%);
+  max-height: min(600px, 100%);
+  box-sizing: border-box;
+}
+
+.chess-board-container {
+  /* Strict Square Fitting */
+  width: auto;
+  height: auto;
+  max-width: min(600px, 100%);
+  /* 700px and 100%*/
+  max-height: min(600px, 100%);
+  aspect-ratio: 1 / 1;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+/* Base board structure */
+.chess-board {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+
+.board-row {
+  display: flex;
+  flex: 1;
+}
+
+.board-square {
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.board-square.light {
+  background-color: #e9e6ed;
+}
+
+.board-square.dark {
+  background-color: #957ca977;
+}
+
+.board-square.selected {
+  background-color: #888 !important;
+}
+
+.move-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.move-indicator.dot {
+  width: 22%;
+  height: 22%;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+}
+
+.move-indicator.capture {
+  width: 90%;
+  height: 90%;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.board-square.check .chess-piece {
+  filter: drop-shadow(0 0 8px rgba(218, 10, 10, 0.714));
+}
+
+.board-square.checkmate .chess-piece {
+  filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.873));
+}
+
+.board-square.hint-target {
+  position: relative;
+}
+
+.board-square.hint-target::before {
+  content: "";
+  position: absolute;
+  width: 90%;
+  height: 90%;
+  border: 4px solid rgba(129, 182, 76, 0.6);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.coord {
+  position: absolute;
+  font-size: 0.5rem;
+  font-weight: 600;
+  opacity: 0.7;
+  pointer-events: none;
+  color: #000000;
+}
+
+.rank-coord {
+  top: 2px;
+  left: 2px;
+}
+
+.file-coord {
+  bottom: 2px;
+  right: 2px;
+}
+
+.piece-wrapper {
+  width: 85%;
+  height: 85%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+}
+
+.chess-piece {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.feedback-sticker {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  transform: translate(-50%, -50%);
+  font-size: 0.8rem;
+  z-index: 10;
+  pointer-events: none;
+  animation: stickerPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes stickerPop {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* Move Quality Badges */
+.move-quality-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 5px;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: #ffffff;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.hint-arrow-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+}
+
+.hint-arrow-overlay line {
+  opacity: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+
+.move-quality-badge.best-1st,
+.move-quality-badge.best-2nd,
+.move-quality-badge.best-3rd,
+.move-quality-badge.king-check,
+.move-quality-badge.king-lost,
+.move-quality-badge.king-win {
+  background: transparent;
+}
+
+.move-quality-badge.mistake {
+  background: transparent;
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+
+  70% {
+    transform: scale(1.2) rotate(5deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 800px) {
+  .chess-board-container {
+    max-height: 50vh;
+    padding: 10px;
+  }
+}
