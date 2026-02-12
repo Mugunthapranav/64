@@ -26,11 +26,11 @@ A modern, responsive chess application built with React, Vite, and Stockfish int
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/c1.git
+   git clone https://github.com/Mugunthapranav/64.git
    ```
 2. Navigate to the project directory:
    ```bash
-   cd c1
+   cd 64
    ```
 3. Install dependencies:
    ```bash
