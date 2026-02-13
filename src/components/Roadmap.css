@@ -164,44 +164,57 @@
 }
 
 .roadmap-node {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.05);
-    color: #555;
-    font-size: 1.1rem;
-    font-weight: 700;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 800;
     cursor: pointer;
     position: relative;
     display: flex;
-    justify-content: center;
     align-items: center;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    justify-content: center;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
     z-index: 2;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.roadmap-node:hover:not(.locked) {
+    transform: translateY(-4px) scale(1.05);
+    background: #252525;
+    border-color: rgba(217, 217, 217, 0.735);
 }
 
 .roadmap-node.active {
     background: #fff;
     color: #000;
-    transform: scale(1.1);
-}
-
-.roadmap-node.completed {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-}
-
-.roadmap-node:hover {
-    transform: scale(1.15) translateY(-5px);
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    border-color: #fff;
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.15);
 }
 
 .roadmap-node.active:hover {
-    background: #eee;
-    color: #000;
+    transform: translateY(-4px) scale(1.05);
+    background: #ffffff;
+}
+
+.roadmap-node.completed {
+    border-color: rgba(255, 255, 255, 1);
+}
+
+/* Locked State */
+.roadmap-node.locked {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.roadmap-node.locked svg {
+    opacity: 0.3;
 }
 
 .node-glow {
@@ -237,38 +250,33 @@
 }
 
 .node-info {
+    margin-top: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 12px;
+    gap: 4px;
 }
 
 .node-label {
-    font-size: 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #555;
-    font-weight: 600;
-    max-width: 120px;
-    text-align: center;
+    color: #fff;
+    white-space: nowrap;
+    opacity: 0.8;
+}
+
+.roadmap-node-container.locked .node-label {
+    opacity: 0.2;
 }
 
 .node-progress {
-    font-size: 0.5rem;
-    color: #444;
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-top: 4px;
-}
-
-.roadmap-node.active+.node-info .node-label,
-.roadmap-node.completed+.node-info .node-label {
-    color: #fff;
-}
-
-.roadmap-node.active+.node-info .node-progress,
-.roadmap-node.completed+.node-info .node-progress {
-    color: #888;
+    margin-top: 2px;
 }
 
 @keyframes pulseGlow {

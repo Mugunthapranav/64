@@ -10,10 +10,14 @@ const Sidebar = ({
     totalPuzzles,
     isCompleted,
     hintsUsed,
+    earnedXP,
     onHint,
     onAutoMove,
     onNext,
-    onOpenRoadmap
+    onPrev,
+    onReplay,
+    onOpenRoadmap,
+    isCurrentPuzzleSolved
 }) => {
     if (!puzzle) return null;
 
@@ -27,13 +31,17 @@ const Sidebar = ({
                 </div>
             </div>
 
-            <div className="sidebar-content">
+            <div className={`sidebar-content ${isCompleted ? 'solved-center' : ''}`}>
                 {isCompleted ? (
                     <PuzzleSolved
                         puzzleIndex={puzzleIndex}
                         totalPuzzles={totalPuzzles}
                         hintsUsed={hintsUsed}
+                        earnedXP={earnedXP}
                         onNext={onNext}
+                        onPrev={onPrev}
+                        onReplay={onReplay}
+                        isCurrentPuzzleSolved={isCurrentPuzzleSolved}
                         variant="sidebar"
                     />
                 ) : (
@@ -52,7 +60,13 @@ const Sidebar = ({
                     <PuzzleControls
                         onHint={onHint}
                         onAutoMove={onAutoMove}
+                        onNext={onNext}
+                        onPrev={onPrev}
+                        onReplay={onReplay}
                         isCompleted={isCompleted}
+                        isCurrentPuzzleSolved={isCurrentPuzzleSolved}
+                        puzzleIndex={puzzleIndex}
+                        totalPuzzles={totalPuzzles}
                     />
                 )}
             </div>

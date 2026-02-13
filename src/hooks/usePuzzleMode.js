@@ -3,9 +3,6 @@ import { Chess } from 'chess.js';
 import { loadPuzzles, getGroupedRoadmap } from '../utils/puzzleLoader';
 import { saveResult, getAllResults } from '../utils/db';
 
-/**
- * Rehabilitates an incomplete FEN string by adding missing fields
- */
 const rehabilitateFen = (fen) => {
     if (!fen) return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     const fields = fen.split(' ').filter(f => f !== '');
@@ -19,53 +16,43 @@ const rehabilitateFen = (fen) => {
     return currentFields.join(' ');
 };
 
-/**
- * Custom hook for puzzle mode state and logic
- */
-const usePuzzleMode = () => {
-    // Puzzle data
+const usePuzzleMode = (addXP) => {
     const [puzzles, setPuzzles] = useState([]);
     const [roadmapData, setRoadmapData] = useState([]);
     const [solvedResults, setSolvedResults] = useState({});
 
-    // Current puzzle state
     const [currentPuzzle, setCurrentPuzzle] = useState(null);
     const [puzzleIndex, setPuzzleIndex] = useState(() => {
         const saved = localStorage.getItem('chess-puzzle-index');
         return saved ? parseInt(saved, 10) : 0;
     });
 
-    // Board state
     const [fen, setFen] = useState('start');
     const [moveIndex, setMoveIndex] = useState(0);
     const [feedback, setFeedback] = useState(null);
     const [isCompleted, setIsCompleted] = useState(false);
     const [resetCounter, setResetCounter] = useState(0);
+    const [earnedXP, setEarnedXP] = useState(null);
 
-    // Hints
     const [hintMove, setHintMove] = useState(null);
     const [hintsUsed, setHintsUsed] = useState(0);
 
-    // UI state
     const [isRoadmapOpen, setIsRoadmapOpen] = useState(false);
     const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
 
-    // Refs
     const gameRef = useRef(new Chess());
     const timeoutsRef = useRef([]);
+    const xpAwardedRef = useRef(false);
 
-    // Safe timeout wrapper for cleanup
     const safeTimeout = useCallback((callback, delay) => {
         const id = setTimeout(() => {
             callback();
-            // Remove from tracking after execution
             timeoutsRef.current = timeoutsRef.current.filter(t => t !== id);
         }, delay);
         timeoutsRef.current.push(id);
         return id;
     }, []);
 
-    // Cleanup timeouts on unmount
     useEffect(() => {
         return () => {
             timeoutsRef.current.forEach(clearTimeout);
@@ -73,9 +60,8 @@ const usePuzzleMode = () => {
         };
     }, []);
 
-    // Load puzzles on mount
     useEffect(() => {
-        const initialIndex = puzzleIndex; // Capture initial value
+        const initialIndex = puzzleIndex;
 
         loadPuzzles().then(async data => {
             console.log('Loaded puzzles:', data.length);
@@ -96,12 +82,10 @@ const usePuzzleMode = () => {
         });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Save progress to localStorage
     useEffect(() => {
         localStorage.setItem('chess-puzzle-index', puzzleIndex.toString());
     }, [puzzleIndex]);
 
-    // Internal start puzzle function
     const startPuzzleInternal = useCallback((puzzle) => {
         setCurrentPuzzle(puzzle);
         const safeFen = rehabilitateFen(puzzle.Fen);
@@ -112,10 +96,11 @@ const usePuzzleMode = () => {
         setIsCompleted(false);
         setHintMove(null);
         setHintsUsed(0);
+        setEarnedXP(null);
+        xpAwardedRef.current = false;
         setIsInstructionsOpen(false);
     }, []);
 
-    // Automated opponent moves
     useEffect(() => {
         if (!currentPuzzle || isCompleted) return;
 
@@ -127,12 +112,11 @@ const usePuzzleMode = () => {
                 if (moveIndex % 2 === 0) {
                     makeMoveInternal(movesArr[moveIndex]);
                 }
-            }, 3000);
+            }, 1000);
             return () => clearTimeout(timer);
         }
     }, [moveIndex, currentPuzzle, isCompleted, safeTimeout]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Internal make move function
     const makeMoveInternal = useCallback((moveInput) => {
         if (!currentPuzzle) return false;
 
@@ -167,13 +151,7 @@ const usePuzzleMode = () => {
 
             if (move) {
                 setFen(gameRef.current.fen());
-                setMoveIndex(prev => {
-                    const nextIdx = prev + 1;
-                    if (nextIdx >= movesArr.length) {
-                        setIsCompleted(true);
-                    }
-                    return nextIdx;
-                });
+                setMoveIndex(prev => prev + 1);
                 return true;
             }
         } catch (e) {
@@ -182,22 +160,47 @@ const usePuzzleMode = () => {
         return false;
     }, [currentPuzzle, moveIndex]);
 
-    // Handle puzzle completion
     const handlePuzzleCompletion = useCallback(async () => {
+        if (xpAwardedRef.current) return;
+        xpAwardedRef.current = true;
+
         setIsCompleted(true);
-        const stars = Math.max(1, 3 - (hintsUsed * 0.5));
+        const currentStars = Math.max(1, 3 - (hintsUsed * 0.5));
+
+        let xpAmount = 100;
+        if (currentStars >= 3) xpAmount = 400;
+        else if (currentStars >= 2.5) xpAmount = 300;
+        else if (currentStars >= 2) xpAmount = 200;
+        else if (currentStars >= 1.5) xpAmount = 150;
+
+        setEarnedXP(xpAmount);
+
         if (currentPuzzle) {
             try {
-                await saveResult(currentPuzzle.PuzzleId, stars);
+                const dbResult = await saveResult(currentPuzzle.PuzzleId, currentStars, xpAmount);
+                const prevXP = dbResult.prevXP || 0;
+
+                if (addXP) {
+                    addXP(xpAmount - prevXP);
+                }
+
                 const updatedResults = await getAllResults();
                 setSolvedResults(updatedResults);
             } catch (err) {
                 console.error('Failed to save stars:', err);
+                if (addXP) addXP(xpAmount);
             }
         }
-    }, [currentPuzzle, hintsUsed]);
+    }, [currentPuzzle, hintsUsed, addXP]);
 
-    // Handle user move
+    useEffect(() => {
+        if (!currentPuzzle || isCompleted || isRoadmapOpen || feedback) return;
+        const movesArr = currentPuzzle.Moves.split(' ');
+        if (moveIndex >= movesArr.length && movesArr.length > 0) {
+            handlePuzzleCompletion();
+        }
+    }, [moveIndex, currentPuzzle, isCompleted, isRoadmapOpen, feedback, hintsUsed, handlePuzzleCompletion]);
+
     const handleUserMove = useCallback((move) => {
         if (isCompleted || feedback || !currentPuzzle) return;
 
@@ -217,9 +220,6 @@ const usePuzzleMode = () => {
                 const nextIdx = prevIndex + 1;
                 safeTimeout(() => {
                     setFeedback(null);
-                    if (nextIdx >= movesArr.length) {
-                        handlePuzzleCompletion();
-                    }
                 }, 2000);
                 return nextIdx;
             });
@@ -233,19 +233,29 @@ const usePuzzleMode = () => {
         }
     }, [currentPuzzle, moveIndex, isCompleted, feedback, safeTimeout, handlePuzzleCompletion]);
 
-    // Start puzzle
     const startPuzzle = useCallback((puzzle) => {
         startPuzzleInternal(puzzle);
     }, [startPuzzleInternal]);
 
-    // Handle next puzzle
     const handleNextPuzzle = useCallback(() => {
-        const nextIdx = (puzzleIndex + 1) % puzzles.length;
+        if (puzzleIndex >= puzzles.length - 1) return;
+        const nextIdx = puzzleIndex + 1;
         setPuzzleIndex(nextIdx);
         startPuzzleInternal(puzzles[nextIdx]);
     }, [puzzleIndex, puzzles, startPuzzleInternal]);
 
-    // Handle hint
+    const handlePrevPuzzle = useCallback(() => {
+        if (puzzleIndex <= 0) return;
+        const prevIdx = puzzleIndex - 1;
+        setPuzzleIndex(prevIdx);
+        startPuzzleInternal(puzzles[prevIdx]);
+    }, [puzzleIndex, puzzles, startPuzzleInternal]);
+
+    const handleReplayPuzzle = useCallback(() => {
+        if (!currentPuzzle) return;
+        startPuzzleInternal(currentPuzzle);
+    }, [currentPuzzle, startPuzzleInternal]);
+
     const handleHint = useCallback(() => {
         if (!currentPuzzle || isCompleted) return;
         const movesArr = currentPuzzle.Moves.split(' ');
@@ -260,7 +270,6 @@ const usePuzzleMode = () => {
         }
     }, [currentPuzzle, moveIndex, isCompleted, safeTimeout]);
 
-    // Handle auto move
     const handleAutoMove = useCallback(() => {
         if (!currentPuzzle || isCompleted) return;
         const movesArr = currentPuzzle.Moves.split(' ');
@@ -269,7 +278,6 @@ const usePuzzleMode = () => {
         setHintMove(null);
     }, [currentPuzzle, isCompleted, moveIndex, makeMoveInternal]);
 
-    // Handle select puzzle from roadmap
     const handleSelectPuzzle = useCallback((index) => {
         setPuzzleIndex(index);
         startPuzzleInternal(puzzles[index]);
@@ -277,12 +285,10 @@ const usePuzzleMode = () => {
     }, [puzzles, startPuzzleInternal]);
 
     return {
-        // Data
         puzzles,
         roadmapData,
         solvedResults,
 
-        // Current puzzle
         currentPuzzle,
         puzzleIndex,
         fen,
@@ -291,20 +297,23 @@ const usePuzzleMode = () => {
         resetCounter,
         hintsUsed,
         hintMove,
+        earnedXP,
 
-        // UI state
         isRoadmapOpen,
         setIsRoadmapOpen,
         isInstructionsOpen,
         setIsInstructionsOpen,
 
-        // Actions
         handleUserMove,
         handleNextPuzzle,
+        handlePrevPuzzle,
+        handleReplayPuzzle,
         handleHint,
         handleAutoMove,
         handleSelectPuzzle,
         startPuzzle,
+
+        isCurrentPuzzleSolved: currentPuzzle ? !!solvedResults[currentPuzzle.PuzzleId] : false
     };
 };
 

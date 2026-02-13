@@ -9,9 +9,6 @@ const TopInstructions = ({ puzzle, isCompleted, variant = 'modal', onClose }) =>
     return (
         <div className={`top-instructions ${className}`}>
             <div className="top-instructions-header">
-                <span className="top-instructions-label">
-                    About
-                </span>
                 {variant === 'modal' && (
                     <button className="close-instructions-btn" onClick={onClose}>
                         x
@@ -19,7 +16,18 @@ const TopInstructions = ({ puzzle, isCompleted, variant = 'modal', onClose }) =>
                 )}
             </div>
             <div className="top-instructions-body">
-                <p>{puzzle.Instructions}</p>
+                {puzzle.Explanation && puzzle.Explanation.toLowerCase() !== 'none' && (
+                    <div className="instructions-section">
+                        <span className="top-instructions-label">What is {puzzle.MateType}:</span>
+                        <p className="explanation-text">{puzzle.Explanation}</p>
+                    </div>
+                )}
+                {puzzle.Instructions && (
+                    <div className="instructions-section">
+                        <span className="top-instructions-label">Instructions:</span>
+                        <p className="instructions-text">{puzzle.Instructions}</p>
+                    </div>
+                )}
             </div>
         </div>
     );

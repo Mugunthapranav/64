@@ -1,12 +1,9 @@
-/**
- * Utility to load and parse the Mate_Puzzles.csv from the public directory.
- */
+
 export async function loadPuzzles() {
     try {
         const response = await fetch('/Mate_Puzzles.csv');
         const csvData = await response.text();
 
-        // Robust CSV parsing to handle newlines within quotes
         const rows = [];
         let currentRow = [];
         let currentField = '';
@@ -18,7 +15,6 @@ export async function loadPuzzles() {
 
             if (char === '"') {
                 if (inQuotes && nextChar === '"') {
-                    // Handle escaped quotes ""
                     currentField += '"';
                     i++;
                 } else {
@@ -34,12 +30,11 @@ export async function loadPuzzles() {
                 }
                 currentRow = [];
                 currentField = '';
-                if (char === '\r') i++; // Skip \n
+                if (char === '\r') i++;
             } else {
                 currentField += char;
             }
         }
-        // Push last field if exists
         if (currentField || currentRow.length > 0) {
             currentRow.push(currentField.trim());
             rows.push(currentRow);
@@ -54,7 +49,7 @@ export async function loadPuzzles() {
                 puzzle[header] = row[index];
             });
             return puzzle;
-        }).filter(p => p.Fen); // Only keep valid puzzles
+        }).filter(p => p.Fen);
 
         return puzzles;
     } catch (error) {
@@ -63,9 +58,7 @@ export async function loadPuzzles() {
     }
 }
 
-/**
- * Groups puzzles by Level and MateType for the roadmap
- */
+
 export function getGroupedRoadmap(puzzles) {
     if (!puzzles || puzzles.length === 0) return [];
 
@@ -98,12 +91,11 @@ export function getGroupedRoadmap(puzzles) {
         part.puzzleCount++;
     });
 
-    // Convert Maps to sorted arrays
     return Array.from(levelsMap.values())
         .map(levelData => ({
             ...levelData,
             parts: Array.from(levelData.parts.values())
         }))
-        .sort((a, b) => parseInt(a.level) - parseInt(b.level));
+        .sort((a, b) => parseInt(a.level, 10) - parseInt(b.level, 10));
 }
 

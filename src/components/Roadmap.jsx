@@ -1,7 +1,55 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import './Roadmap.css';
 
 const Roadmap = ({ roadmapData, currentPuzzleIndex, solvedResults, onSelect, onClose }) => {
+    const visibleLevels = useMemo(() => {
+        let foundCurrentPart = false;
+        const sResults = solvedResults || {};
+
+        return roadmapData.map((level) => {
+            const visibleLevelParts = [];
+
+            for (const part of level.parts) {
+                if (foundCurrentPart) break;
+
+                const pIds = part.puzzleIds || [];
+                const solvedCount = pIds.filter(id => sResults[id]).length;
+                const isMastered = solvedCount === (part.puzzleCount || 1);
+
+                const solvedPuzzles = pIds.filter(id => sResults[id]);
+                const totalStars = solvedPuzzles.reduce((sum, id) => sum + (sResults[id] || 0), 0);
+                const avgStars = solvedCount > 0 ? (totalStars / solvedCount) : 0;
+
+                const radius = 36;
+                const circumference = 2 * Math.PI * radius;
+                const progress = solvedCount / (part.puzzleCount || 1);
+                const offsetValue = circumference - (progress * circumference);
+
+                visibleLevelParts.push({
+                    ...part,
+                    isMastered,
+                    solvedCount,
+                    totalCount: part.puzzleCount || 1,
+                    pIds,
+                    avgStars,
+                    circumference,
+                    offsetValue
+                });
+
+                if (!isMastered) {
+                    foundCurrentPart = true;
+                }
+            }
+
+            if (visibleLevelParts.length === 0) return null;
+
+            return {
+                ...level,
+                parts: visibleLevelParts
+            };
+        }).filter(Boolean);
+    }, [roadmapData, solvedResults]);
+
     return (
         <div className="roadmap-overlay" onClick={onClose}>
             <div className="roadmap-modal" onClick={e => e.stopPropagation()}>
@@ -11,7 +59,7 @@ const Roadmap = ({ roadmapData, currentPuzzleIndex, solvedResults, onSelect, onC
                 </div>
 
                 <div className="roadmap-path">
-                    {roadmapData.map((level, levelIdx) => (
+                    {visibleLevels.map((level, levelIdx) => (
                         <div key={level.level} className="level-section">
                             <div className="level-header">
                                 <span className="level-label">Level {level.level}</span>
@@ -20,33 +68,15 @@ const Roadmap = ({ roadmapData, currentPuzzleIndex, solvedResults, onSelect, onC
 
                             <div className="parts-container">
                                 {level.parts.map((part, partIdx) => {
-                                    const pIds = part.puzzleIds || [];
-                                    const sResults = solvedResults || {};
-                                    const solvedPuzzles = pIds.filter(id => sResults[id]);
-                                    const solvedCount = solvedPuzzles.length;
-                                    const totalCount = part.puzzleCount || 1;
-                                    const isMastered = solvedCount === totalCount;
-
                                     const isActive = currentPuzzleIndex >= part.firstPuzzleIndex &&
-                                        currentPuzzleIndex < part.firstPuzzleIndex + totalCount;
+                                        currentPuzzleIndex < part.firstPuzzleIndex + part.totalCount;
 
-                                    // Calculate average stars for the solved puzzles in this part
-                                    const totalStars = solvedPuzzles.reduce((sum, id) => sum + (sResults[id] || 0), 0);
-                                    const avgStars = solvedCount > 0 ? (totalStars / solvedCount) : 0;
-
-                                    // Progress circle math
-                                    const radius = 36;
-                                    const circumference = 2 * Math.PI * radius;
-                                    const progress = solvedCount / totalCount;
-                                    const offsetValue = circumference - (progress * circumference);
-
-                                    // Zig-zag offset logic
                                     const offset = (partIdx % 3 === 0) ? 'center' : (partIdx % 3 === 1) ? 'left' : 'right';
 
                                     return (
                                         <div
                                             key={part.name}
-                                            className={`roadmap-node-container ${offset} ${isActive ? 'active' : ''} ${isMastered ? 'completed' : ''}`}
+                                            className={`roadmap-node-container ${offset} ${isActive ? 'active' : ''} ${part.isMastered ? 'completed' : ''}`}
                                         >
                                             <div className="node-wrapper">
                                                 <svg className="progress-ring" width="80" height="80">
@@ -55,7 +85,7 @@ const Roadmap = ({ roadmapData, currentPuzzleIndex, solvedResults, onSelect, onC
                                                         stroke="rgba(255, 255, 255, 0.05)"
                                                         strokeWidth="4"
                                                         fill="transparent"
-                                                        r={radius}
+                                                        r="36"
                                                         cx="40"
                                                         cy="40"
                                                     />
@@ -63,32 +93,33 @@ const Roadmap = ({ roadmapData, currentPuzzleIndex, solvedResults, onSelect, onC
                                                         className="progress-ring-fill"
                                                         stroke="white"
                                                         strokeWidth="4"
-                                                        strokeDasharray={`${circumference} ${circumference}`}
-                                                        style={{ strokeDashoffset: offsetValue }}
+                                                        strokeDasharray={`${part.circumference} ${part.circumference}`}
+                                                        style={{ strokeDashoffset: part.offsetValue }}
                                                         strokeLinecap="round"
                                                         fill="transparent"
-                                                        r={radius}
+                                                        r="36"
                                                         cx="40"
                                                         cy="40"
                                                     />
                                                 </svg>
                                                 <button
-                                                    className={`roadmap-node ${isActive ? 'active' : ''} ${isMastered ? 'completed' : ''}`}
+                                                    className={`roadmap-node ${isActive ? 'active' : ''} ${part.isMastered ? 'completed' : ''}`}
                                                     onClick={() => onSelect(part.firstPuzzleIndex)}
+                                                    title={part.name}
                                                 >
-                                                    {isMastered ? '✓' : partIdx + 1}
+                                                    {part.isMastered ? '✓' : partIdx + 1}
                                                     <div className="node-glow"></div>
 
-                                                    {isMastered && avgStars > 0 && (
+                                                    {part.isMastered && part.avgStars > 0 && (
                                                         <div className="node-stars">
-                                                            {'★'.repeat(Math.round(avgStars))}
+                                                            {'★'.repeat(Math.round(part.avgStars))}
                                                         </div>
                                                     )}
                                                 </button>
                                             </div>
                                             <div className="node-info">
                                                 <span className="node-label">{part.name}</span>
-                                                <span className="node-progress">{solvedCount}/{totalCount}</span>
+                                                <span className="node-progress">{part.solvedCount}/{part.totalCount}</span>
                                             </div>
                                         </div>
                                     );

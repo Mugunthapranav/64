@@ -1,18 +1,26 @@
-import ChessBoard from './components/ChessBoard'
-import Sidebar from './components/Sidebar'
-import TopInstructions from './components/TopInstructions'
-import PuzzleControls from './components/PuzzleControls'
-import PuzzleSolved from './components/PuzzleSolved'
-import Roadmap from './components/Roadmap'
-import Navbar from './components/Navbar'
-import MoveHistorySidebar from './components/MoveHistorySidebar'
-import usePuzzleMode from './hooks/usePuzzleMode'
-import useEngineMode from './hooks/useEngineMode'
-import './App.css'
-import './components/MoveHistorySidebar.css'
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import ChessBoard from './components/ChessBoard';
+import Roadmap from './components/Roadmap';
+import MoveHistorySidebar from './components/MoveHistorySidebar';
+import GameResult from './components/GameResult';
+import ProfileModal from './components/ProfileModal';
+import TopInstructions from './components/TopInstructions';
+import PuzzleControls from './components/PuzzleControls';
+import PuzzleSolved from './components/PuzzleSolved';
+import usePuzzleMode from './hooks/usePuzzleMode';
+import useEngineMode from './hooks/useEngineMode';
+import useXP from './hooks/useXP';
+import useProfile from './hooks/useProfile';
+import { getAllResults } from './utils/db';
+import './App.css';
 
 function App() {
-  // Puzzle mode hook
+  const { xp, addXP } = useXP();
+  const { profile, loading: profileLoading, updateUsername, completeSetup } = useProfile();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
   const {
     puzzles,
     roadmapData,
@@ -31,12 +39,15 @@ function App() {
     setIsInstructionsOpen,
     handleUserMove: handlePuzzleMove,
     handleNextPuzzle,
+    handlePrevPuzzle,
+    handleReplayPuzzle,
     handleHint: handlePuzzleHint,
     handleAutoMove,
-    handleSelectPuzzle,
-  } = usePuzzleMode();
+    handleSelectPuzzle: onPuzzleSelect,
+    earnedXP,
+    isCurrentPuzzleSolved,
+  } = usePuzzleMode(addXP);
 
-  // Engine mode hook
   const {
     isEngineMode,
     engineGame,
@@ -52,30 +63,38 @@ function App() {
     engineStatus,
     currentEval,
     gameStatus,
+    gameResult,
     handleEngineMove,
     handleToggleEngineMode,
     handleNewEngineGame,
     handleEngineHint,
     handleUndoMove,
+    handleResign,
+    handleStartGame,
+    isGameActive,
     topMoves,
     lastMoveQuality,
-  } = useEngineMode();
+  } = useEngineMode(addXP);
 
-  // Unified move handler
-  const handleUserMove = (move) => {
+  const puzzlesSolvedCount = useMemo(() => {
+    return Object.keys(solvedResults || {}).length;
+  }, [solvedResults]);
+
+  const showOnboarding = !profileLoading && profile && !profile.hasSetup;
+
+  const handleUserMove = useCallback((move) => {
     if (isEngineMode) {
       return handleEngineMove(move);
     }
     return handlePuzzleMove(move);
-  };
+  }, [isEngineMode, handleEngineMove, handlePuzzleMove]);
 
-  // Unified hint handler
-  const handleHint = () => {
+  const handleHint = useCallback(() => {
     if (isEngineMode) {
       return handleEngineHint();
     }
     return handlePuzzleHint();
-  };
+  }, [isEngineMode, handleEngineHint, handlePuzzleHint]);
 
   return (
     <div className="app-container">
@@ -83,16 +102,24 @@ function App() {
         onOpenRoadmap={() => setIsRoadmapOpen(true)}
         onToggleEngineMode={handleToggleEngineMode}
         isEngineMode={isEngineMode}
+        xp={xp}
+        streak={profile?.streak || 0}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
+
       {isRoadmapOpen && (
         <Roadmap
           roadmapData={roadmapData}
           currentPuzzleIndex={puzzleIndex}
           solvedResults={solvedResults}
-          onSelect={handleSelectPuzzle}
+          onSelect={(index) => {
+            onPuzzleSelect(index);
+            setIsRoadmapOpen(false);
+          }}
           onClose={() => setIsRoadmapOpen(false)}
         />
       )}
+
       <div className="app-body">
         {isEngineMode ? (
           <MoveHistorySidebar
@@ -108,8 +135,12 @@ function App() {
             currentEval={currentEval}
             onHint={handleHint}
             gameStatus={gameStatus}
+            gameResult={gameResult}
             topMoves={topMoves}
             onUndo={handleUndoMove}
+            onResign={handleResign}
+            onStartGame={handleStartGame}
+            isGameActive={isGameActive}
           />
         ) : (
           <Sidebar
@@ -118,22 +149,40 @@ function App() {
             totalPuzzles={puzzles.length}
             isCompleted={isCompleted}
             hintsUsed={hintsUsed}
+            earnedXP={earnedXP}
+            isCurrentPuzzleSolved={isCurrentPuzzleSolved}
             onHint={handleHint}
             onAutoMove={handleAutoMove}
             onNext={handleNextPuzzle}
+            onPrev={handlePrevPuzzle}
+            onReplay={handleReplayPuzzle}
             onOpenRoadmap={() => setIsRoadmapOpen(true)}
           />
         )}
 
         <div className="main-content">
-          {/* Mobile Puzzle Solved Modal */}
           {!isEngineMode && isCompleted && (
             <div className="mobile-only">
               <PuzzleSolved
                 puzzleIndex={puzzleIndex}
                 totalPuzzles={puzzles.length}
                 hintsUsed={hintsUsed}
+                earnedXP={earnedXP}
+                isCurrentPuzzleSolved={isCurrentPuzzleSolved}
                 onNext={handleNextPuzzle}
+                onPrev={handlePrevPuzzle}
+                onReplay={handleReplayPuzzle}
+                variant="modal"
+              />
+            </div>
+          )}
+
+          {isEngineMode && gameResult && (
+            <div className="mobile-only">
+              <GameResult
+                result={gameResult}
+                playerColor={playerColor}
+                onNewGame={handleNewEngineGame}
                 variant="modal"
               />
             </div>
@@ -175,8 +224,20 @@ function App() {
           )}
         </div>
       </div>
+
+      {(isProfileOpen || showOnboarding) && (
+        <ProfileModal
+          profile={profile}
+          xp={xp}
+          puzzlesSolved={puzzlesSolvedCount}
+          onUpdateName={updateUsername}
+          onCompleteSetup={completeSetup}
+          onClose={() => setIsProfileOpen(false)}
+          isOnboarding={showOnboarding}
+        />
+      )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

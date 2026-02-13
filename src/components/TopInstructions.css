@@ -2,30 +2,43 @@
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    border-bottom: 1px solid rgb(226, 220, 220);
-    margin: 10px;
+    margin: 1px;
     position: relative;
 }
 
+.instructions-section {
+    margin-bottom: 10px;
+}
+
+.instructions-section:last-child {
+    margin-bottom: 0;
+}
+
 .top-instructions-label {
-    font-size: 0.6rem;
-    text-transform: uppercase;
+    font-size: 0.7rem;
     letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.6);
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-style: italic;
 }
 
 .top-instructions-body p {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.6;
-    color: rgba(204, 203, 203, 0.95);
+    color: rgba(255, 255, 255, 0.9);
     margin: 0;
     word-break: break-word;
     overflow-wrap: break-word;
     letter-spacing: -0.01em;
     font-family: sans-serif;
+}
+
+.instructions-text,
+.explanation-text {
     font-style: italic;
+    color: rgba(255, 255, 255, 0.5) !important;
 }
 
 /* Specific styling when used as a Top Modal on Mobile */
@@ -36,7 +49,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     padding: 20px 24px;
-    margin: 16px 20px 0;
+    margin: 1px 15px 0;
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 0 0 1px rgba(255, 255, 255, 0.05);

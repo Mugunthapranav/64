@@ -1,9 +1,6 @@
 import React from 'react';
 import './PromotionModal.css';
 
-/**
- * Minimalist Modal for selecting pawn promotion piece
- */
 const PromotionModal = ({ color, onSelect, onCancel }) => {
     const pieces = [
         { type: 'q', name: 'Queen' },

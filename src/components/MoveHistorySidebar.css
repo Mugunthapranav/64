@@ -116,8 +116,19 @@
 .sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
     scrollbar-width: none;
+}
+
+.sidebar-content.result-center {
+    justify-content: center;
+    align-items: center;
+}
+
+.full-width {
+    width: 100%;
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -224,16 +235,31 @@
 
 .undo-btn,
 .hint-btn-main,
+.resign-btn,
 .new-game-btn {
-    width: 100%;
-    padding: 8px 8px;
+    flex: 2;
+    background: #fff;
+    color: #000;
     border: none;
-    border-radius: 12px;
-    font-size: 0.6rem;
-    font-weight: 800;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.1em;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
+}
+
+.resign-btn {
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.2);
+}
+
+.resign-btn:hover {
+    background: #ff4d4d;
+    color: #fff;
 }
 
 .undo-btn {

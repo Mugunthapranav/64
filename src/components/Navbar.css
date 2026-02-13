@@ -31,25 +31,20 @@
 
 .navbar-btn {
     position: relative;
-    /* Essential for positioning the glow */
     background: #1a1a1a;
-    /* Must be solid or dark to hide the center of the glow */
     color: #fff;
     padding: 6px 16px;
     border-radius: 8px;
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    margin-left: 10px;
     border: none;
-    /* Remove the old border */
     overflow: hidden;
-    /* Clips the rotating glow to the button shape */
     display: inline-block;
     z-index: 1;
+    margin-right: 10px;
 }
 
-/* The Glowing Flow Element */
 .navbar-btn::before {
     content: '';
     position: absolute;
@@ -57,38 +52,104 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    /* This creates the 'beam' of light */
     background: conic-gradient(transparent,
             rgba(255, 255, 255, 0.3),
             transparent 30%);
     animation: rotate 3s linear infinite;
     opacity: 0;
-    /* Hidden by default */
     transition: opacity 0.3s;
     z-index: -2;
 }
 
-/* Inner cover to make the border look thin */
 .navbar-btn::after {
     content: '';
     position: absolute;
     inset: 1px;
-    /* This defines the border thickness */
     background: #1a1a1a;
-    /* Match your button background */
     border-radius: 7px;
-    /* Slightly smaller than parent radius */
     z-index: -1;
 }
 
 .navbar-btn:hover::before {
     opacity: 1;
-    /* Show the flow on hover */
 }
 
 .navbar-btn:hover {
     transform: translateY(-1px);
     transition: 0.1s;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-right-stats {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+}
+
+.navbar-right-stats:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-right-stats:active {
+    transform: translateY(0);
+}
+
+.stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.streak-badge {
+    position: relative;
+}
+
+.stat-icon {
+    font-size: 0.7rem;
+    line-height: 1;
+}
+
+.stat-value {
+    font-size: 0.7rem !important;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.stat-label {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.xp-badge {
+    position: relative;
+    padding-left: 5px;
+}
+
+.xp-badge::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 12px;
 }
 
 /* The movement animation */

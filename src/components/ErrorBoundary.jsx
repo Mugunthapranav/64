@@ -1,9 +1,6 @@
 import React from 'react';
 import './ErrorBoundary.css';
 
-/**
- * Error Boundary component to catch and handle React render errors
- */
 class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
@@ -17,7 +14,6 @@ class ErrorBoundary extends React.Component {
     componentDidCatch(error, errorInfo) {
         this.setState({ error, errorInfo });
 
-        // Call optional onError callback
         if (this.props.onError) {
             this.props.onError(error, errorInfo);
         }
@@ -31,7 +27,6 @@ class ErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
-            // Custom fallback UI if provided
             if (this.props.fallback) {
                 return this.props.fallback;
             }

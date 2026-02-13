@@ -2,40 +2,32 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import useStockfish from './useStockfish';
 
-/**
- * Utility to get 4-field position key (board, turn, castling, ep)
- */
 const getPositionKey = (fen) => {
     if (!fen || fen === 'start') return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
     return fen.split(' ').slice(0, 4).join(' ');
 };
 
-/**
- * Custom hook for engine mode state and logic
- */
-const useEngineMode = () => {
-    // Engine mode state
+const useEngineMode = (addXP) => {
     const [isEngineMode, setIsEngineMode] = useState(false);
     const [engineGame, setEngineGame] = useState(new Chess());
     const [engineHistory, setEngineHistory] = useState([]);
     const [engineHistoryEvals, setEngineHistoryEvals] = useState([]);
     const [difficulty, setDifficulty] = useState(5);
-    const [playerColor, setPlayerColor] = useState('w'); // 'w' = white, 'b' = black
+    const [playerColor, setPlayerColor] = useState('w');
     const [hintMove, setHintMove] = useState(null);
     const [topMoves, setTopMoves] = useState([]);
-    const [lastMoveQuality, setLastMoveQuality] = useState(null); // { square, type }
+    const [lastMoveQuality, setLastMoveQuality] = useState(null);
+    const [gameResult, setGameResult] = useState(null);
+    const [hintsUsed, setHintsUsed] = useState(0);
+    const [matchXP, setMatchXP] = useState(0);
+    const [isGameActive, setIsGameActive] = useState(false);
 
-    // Current position evaluation (for display bar)
     const [currentEval, setCurrentEval] = useState({ type: 'cp', value: 0, turn: 'w' });
 
-    // Timeout tracking for cleanup
     const timeoutsRef = useRef([]);
 
-    // Analysis queue - positions waiting for evaluation
-    const analysisQueueRef = useRef([]);
     const isAnalyzingRef = useRef(false);
 
-    // Safe timeout wrapper
     const safeTimeout = useCallback((callback, delay) => {
         const id = setTimeout(() => {
             callback();
@@ -45,7 +37,6 @@ const useEngineMode = () => {
         return id;
     }, []);
 
-    // Stockfish instances
     const { getBestMove, isThinking, engineStatus } = useStockfish('Opponent');
     const {
         startAnalysis,
@@ -59,7 +50,6 @@ const useEngineMode = () => {
         isThinking: isHintThinking
     } = useStockfish('Hint');
 
-    // Cleanup timeouts on unmount
     useEffect(() => {
         return () => {
             timeoutsRef.current.forEach(clearTimeout);
@@ -67,15 +57,11 @@ const useEngineMode = () => {
         };
     }, []);
 
-    // Process evaluation updates from the Analysis engine
     useEffect(() => {
         if (!isEngineMode || !evaluation || !evaluation.positionKey) return;
 
-        // Normalize: UCI score is from side-to-move perspective
-        // We want: Positive = White advantage, Negative = Black advantage
         const normalizedValue = evaluation.turn === 'w' ? evaluation.value : -evaluation.value;
 
-        // Update current evaluation display (always shows current position)
         const currentPosKey = getPositionKey(engineGame.fen());
         if (evaluation.positionKey === currentPosKey) {
             setCurrentEval({
@@ -85,12 +71,10 @@ const useEngineMode = () => {
             });
         }
 
-        // Update history evals if we have a matching position
         setEngineHistoryEvals(prev => {
             const evalMoveIndex = prev.findIndex(item => item.positionKey === evaluation.positionKey);
 
             if (evalMoveIndex !== -1) {
-                // Don't overwrite with 0 baseline if we already have a real value
                 if (evaluation.value === 0 && evaluation.type !== 'mate' && prev[evalMoveIndex].value !== 0) {
                     return prev;
                 }
@@ -99,7 +83,7 @@ const useEngineMode = () => {
                 next[evalMoveIndex] = {
                     ...evaluation,
                     value: normalizedValue,
-                    normalized: true  // Mark as properly normalized
+                    normalized: true
                 };
                 return next;
             }
@@ -107,7 +91,6 @@ const useEngineMode = () => {
         });
     }, [evaluation, isEngineMode, engineGame]);
 
-    // Run analysis when board changes in engine mode
     useEffect(() => {
         if (isEngineMode && engineGame && !engineGame.isGameOver()) {
             startAnalysis(engineGame.fen());
@@ -116,11 +99,9 @@ const useEngineMode = () => {
         }
     }, [engineGame, isEngineMode, startAnalysis, stopAnalysis]);
 
-    // Fetch top 3 moves when it's user's turn
     useEffect(() => {
         if (!isEngineMode || !engineGame || engineGame.isGameOver()) return;
 
-        // Only fetch when it's the player's turn
         if (engineGame.turn() !== playerColor) return;
 
         const fetchTopMoves = async () => {
@@ -144,28 +125,90 @@ const useEngineMode = () => {
         };
 
         fetchTopMoves();
-    }, [engineGame, isEngineMode, getTopMoves, playerColor]);
+    }, [engineGame, isEngineMode, getTopMoves, playerColor, gameResult]);
 
-    // Handle engine move
+    useEffect(() => {
+        if (!isEngineMode || !engineGame || gameResult) return;
+
+        if (engineGame.isGameOver()) {
+            let winner = null;
+            let reason = 'draw';
+
+            if (engineGame.isCheckmate()) {
+                winner = engineGame.turn() === 'w' ? 'b' : 'w';
+                reason = 'checkmate';
+            } else if (engineGame.isStalemate()) {
+                reason = 'stalemate';
+            } else if (engineGame.isThreefoldRepetition()) {
+                reason = 'repetition';
+            } else if (engineGame.isInsufficientMaterial()) {
+                reason = 'insufficient';
+            } else if (engineGame.isDraw()) {
+                reason = 'draw';
+            }
+
+            const resultXP = winner === playerColor ? 500 : 300;
+            const totalEarned = matchXP + resultXP;
+            if (addXP) addXP(resultXP);
+
+            setGameResult({
+                winner,
+                reason,
+                earnedXP: totalEarned,
+                stats: {
+                    moves: Math.ceil(engineGame.history().length / 2),
+                    hints: hintsUsed,
+                    material: calculateMaterialBalance(engineGame)
+                }
+            });
+        }
+    }, [engineGame, isEngineMode, gameResult, hintsUsed, matchXP, addXP, playerColor]);
+
+    const calculateMaterialBalance = (game) => {
+        const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+        let balance = 0;
+        game.board().forEach(row => {
+            row.forEach(piece => {
+                if (piece) {
+                    const val = values[piece.type];
+                    balance += piece.color === 'w' ? val : -val;
+                }
+            });
+        });
+        return balance;
+    };
+
     const handleEngineMove = useCallback(async (move) => {
         if (engineGame.isGameOver()) return false;
 
         try {
-            // Capture FEN BEFORE the move to associate eval with the move
             const preFen = engineGame.fen();
             const prePosKey = getPositionKey(preFen);
 
             const result = engineGame.move(move);
             if (result) {
-                // Determine move quality (only for user moves)
+                if (!isGameActive) setIsGameActive(true);
                 if (result.color === playerColor && topMoves.length > 0) {
                     const uciMove = result.from + result.to + (result.promotion || '');
                     const matchingTopMoveIndex = topMoves.findIndex(m => m.move === uciMove);
 
                     let quality = 'mistake';
-                    if (matchingTopMoveIndex === 0) quality = 'best-1st';
-                    else if (matchingTopMoveIndex === 1) quality = 'best-2nd';
-                    else if (matchingTopMoveIndex === 2) quality = 'best-3rd';
+                    let moveXP = 0;
+                    if (matchingTopMoveIndex === 0) {
+                        quality = 'best-1st';
+                        moveXP = 30;
+                    } else if (matchingTopMoveIndex === 1) {
+                        quality = 'best-2nd';
+                        moveXP = 20;
+                    } else if (matchingTopMoveIndex === 2) {
+                        quality = 'best-3rd';
+                        moveXP = 10;
+                    }
+
+                    if (moveXP > 0) {
+                        setMatchXP(prev => prev + moveXP);
+                        if (addXP) addXP(moveXP);
+                    }
 
                     setLastMoveQuality({
                         square: result.to,
@@ -178,21 +221,20 @@ const useEngineMode = () => {
                 const postFen = engineGame.fen();
                 const postPosKey = getPositionKey(postFen);
 
-                // Store the move with the POST-move position key
-                // (because we want to show the eval of the resulting position)
+
                 setEngineHistory(prev => [...prev, userMoveSan]);
                 setEngineHistoryEvals(prev => [...prev, {
                     type: 'cp',
                     value: 0,
                     positionKey: postPosKey,
-                    turn: postFen.split(' ')[1],  // Turn in resulting position
+                    turn: postFen.split(' ')[1],
                     normalized: false
                 }]);
 
                 const updatedGame = new Chess(postFen);
                 setEngineGame(updatedGame);
 
-                // Schedule Engine Response (engine plays as the opposite of player's color)
+
                 const engineColor = playerColor === 'w' ? 'b' : 'w';
                 if (!updatedGame.isGameOver() && updatedGame.turn() === engineColor) {
                     safeTimeout(async () => {
@@ -232,13 +274,29 @@ const useEngineMode = () => {
             console.error('Engine move error:', e);
         }
         return false;
-    }, [engineGame, difficulty, getBestMove, safeTimeout, topMoves, playerColor]);
+    }, [engineGame, difficulty, getBestMove, safeTimeout, topMoves, playerColor, gameResult]);
 
-    // Toggle engine mode
+    const handleResign = useCallback(() => {
+        if (!isEngineMode || engineGame.isGameOver() || gameResult) return;
+
+        const winner = playerColor === 'w' ? 'b' : 'w';
+        setGameResult({
+            winner,
+            reason: 'resign',
+            stats: {
+                moves: Math.ceil(engineGame.history().length / 2),
+                hints: hintsUsed,
+                material: calculateMaterialBalance(engineGame)
+            }
+        });
+
+        timeoutsRef.current.forEach(clearTimeout);
+        timeoutsRef.current = [];
+    }, [isEngineMode, engineGame, gameResult, playerColor]);
+
     const handleToggleEngineMode = useCallback(() => {
         setIsEngineMode(prev => {
             if (!prev) {
-                // Entering engine mode
                 setEngineGame(new Chess());
                 setEngineHistory([]);
                 setEngineHistoryEvals([]);
@@ -250,15 +308,13 @@ const useEngineMode = () => {
         });
     }, []);
 
-    // Effect to make engine move first when player is black
     useEffect(() => {
-        if (!isEngineMode) return;
+        if (!isEngineMode || !isGameActive) return;
         if (playerColor !== 'b') return;
-        if (engineHistory.length > 0) return; // Only on fresh game
+        if (engineHistory.length > 0) return;
         if (engineGame.isGameOver()) return;
-        if (engineGame.turn() !== 'w') return; // Engine plays white, should move first
+        if (engineGame.turn() !== 'w') return;
 
-        // Delay to let the UI settle
         const timeoutId = safeTimeout(async () => {
             const bestMove = await getBestMove(engineGame.fen(), difficulty);
 
@@ -289,11 +345,9 @@ const useEngineMode = () => {
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [isEngineMode, playerColor, engineHistory.length, engineGame, getBestMove, difficulty, safeTimeout]);
+    }, [isEngineMode, playerColor, engineHistory.length, engineGame, getBestMove, difficulty, safeTimeout, isGameActive]);
 
-    // Start new engine game
     const handleNewEngineGame = useCallback(() => {
-        // Clear pending timeouts
         timeoutsRef.current.forEach(clearTimeout);
         timeoutsRef.current = [];
 
@@ -304,9 +358,16 @@ const useEngineMode = () => {
         setHintMove(null);
         setTopMoves([]);
         setLastMoveQuality(null);
+        setGameResult(null);
+        setHintsUsed(0);
+        setMatchXP(0);
+        setIsGameActive(false);
     }, []);
 
-    // Handle hint in engine mode
+    const handleStartGame = useCallback(() => {
+        setIsGameActive(true);
+    }, []);
+
     const handleEngineHint = useCallback(async () => {
         if (hintMove) {
             setHintMove(null);
@@ -315,9 +376,9 @@ const useEngineMode = () => {
 
         if (engineGame.isGameOver()) return;
 
-        // Use null for difficulty to get max strength, and depth 14 for speed
         const bestMove = await getHintBestMove(engineGame.fen(), null, 14);
         if (bestMove && bestMove !== '(none)' && bestMove.length >= 4) {
+            setHintsUsed(prev => prev + 1);
             setHintMove({
                 from: bestMove.slice(0, 2),
                 to: bestMove.slice(2, 4)
@@ -326,16 +387,12 @@ const useEngineMode = () => {
         }
     }, [engineGame, hintMove, getHintBestMove, safeTimeout]);
 
-    // Handle undo move
     const handleUndoMove = useCallback(() => {
-        // Clear all pending timeouts (especially engine moves)
         timeoutsRef.current.forEach(clearTimeout);
         timeoutsRef.current = [];
 
         if (engineHistory.length === 0) return;
 
-        // If it's engine's turn, it means user JUST moved. Revert 1.
-        // If it's user's turn, it means engine just moved. Revert 2.
         const engineColor = playerColor === 'w' ? 'b' : 'w';
         const movesToUndo = engineGame.turn() === engineColor ? 1 : 2;
         const actualUndoCount = Math.min(movesToUndo, engineHistory.length);
@@ -352,7 +409,6 @@ const useEngineMode = () => {
         setHintMove(null);
     }, [engineGame, engineHistory, safeTimeout]);
 
-    // Get game status
     const getGameStatus = useCallback(() => {
         if (engineGame.isCheckmate()) return 'Checkmate';
         if (engineGame.isDraw()) return 'Draw';
@@ -361,7 +417,6 @@ const useEngineMode = () => {
     }, [engineGame]);
 
     return {
-        // State
         isEngineMode,
         engineGame,
         engineHistory,
@@ -373,24 +428,24 @@ const useEngineMode = () => {
         hintMove,
         topMoves,
         lastMoveQuality,
+        gameResult,
 
-        // Stockfish status
         isThinking,
         isHintThinking,
         engineStatus,
 
-        // Current position evaluation (normalized: + = white advantage)
         currentEval,
 
-        // Computed
         gameStatus: getGameStatus(),
 
-        // Actions
         handleEngineMove,
         handleToggleEngineMode,
         handleNewEngineGame,
         handleEngineHint,
         handleUndoMove,
+        handleResign,
+        handleStartGame,
+        isGameActive,
     };
 };
 
